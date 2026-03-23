@@ -270,17 +270,21 @@ async function startDemo() {
   }
 
   // ── Phase 3: Done ───────────────────────────────
-  const satTools = allResults.filter(r => r.result === "SAT");
-  const uncTools = allResults.filter(r => classifyResult(r.result) === "uncertain");
+  const satCount = allResults.filter(r => r.result === "SAT").length;
+  const unsatCount = allResults.filter(r => r.result === "UNSAT").length;
+  const uncCount = allResults.filter(r => classifyResult(r.result) === "uncertain").length;
+  const honeypotCount = TOOLS.filter(t => t.honeypot).length;
+  const honeypotsCaught = TOOLS.filter((t, i) => t.honeypot && allResults[i] && allResults[i].result === "UNSAT").length;
 
-  if (satTools.length > 0) {
+  if (satCount > 0) {
+    const parts = [`Done. ${satCount} of ${TOOLS.length} tools fully verified (SAT) with cryptographic proof of capability match.`];
+    if (unsatCount > 0) parts.push(`${unsatCount} rejected (UNSAT).`);
+    if (honeypotsCaught > 0) parts.push(`${honeypotsCaught} of ${honeypotCount} honeypots caught.`);
+    parts.push(`Agent would call forage_install for verified tools.`);
+    setAnnotation(parts.join(" "), "done");
+  } else if (uncCount > 0) {
     setAnnotation(
-      `Done. ${satTools.length} tool(s) fully verified. Agent would call forage_install with cryptographic proof of capability match.`,
-      "done"
-    );
-  } else if (uncTools.length > 0) {
-    setAnnotation(
-      `Done. No tools achieved full SAT consensus, but ${uncTools.length} reached the "needs review" shortlist where all 3 solvers individually agreed. Both honeypots were rejected.`,
+      `Done. No tools achieved full SAT consensus, but ${uncCount} need review. ${honeypotsCaught} of ${honeypotCount} honeypots rejected.`,
       "done"
     );
   } else {
